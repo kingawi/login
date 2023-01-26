@@ -4,6 +4,7 @@ const cors = require('cors')
 const cookieSession = require('cookie-session')
 const dbConfig = require('./app/config/db.config')
 const app = express()
+// const exerciseRoutes = require('./routes/exercise.routes')
 
 const db = require('./app/model')
 const Role = db.role //pobiera tablice z rolami z db a nastepnie sa one przyporzadkowane do tworzenia obiektow niżej (tworzy kolekcję ról w bazach danych jako obiekt (funkcja initial()))
@@ -35,6 +36,7 @@ app.get('/', (req, res) => {
 // routes
 require('./app/routes/auth.routes')(app)
 require('./app/routes/user.routes')(app)
+require('./app/routes/exercise.routes')(app)
 
 // set port, listen for requests
 
@@ -45,22 +47,22 @@ app.listen(PORT, () => {
 })
 
 //polaczenie z baza danych
-db.mongoose
-	.connect(`mongodb://${dbConfig.HOST}:${dbConfig.PORT}/${dbConfig.DB}`, {
-		useNewUrlParser: true,
-		useUnifiedTopology: true,
-	})
-	.then(() => {
+async function connectDb() {
+	try {
+		await db.mongoose.connect(`mongodb://${dbConfig.HOST}:${dbConfig.PORT}/${dbConfig.DB}`, {
+			useNewUrlParser: true,
+			useUnifiedTopology: true,
+		})
 		console.log('Successfully connect to MongoDB.')
-		initial()
-	})
-	.catch(err => {
+		await initial()
+	} catch {
 		console.error('Connection error', err)
 		process.exit()
-	})
+	}
+}
+connectDb()
 
-
-
+function initial() {
 	Role.estimatedDocumentCount((err, count) => {
 		if (!err && count === 0) {
 			new Role({
@@ -91,15 +93,6 @@ db.mongoose
 
 				console.log("added 'admin' to roles collection")
 			})
-			new Role({
-				name: 'trainer',
-			}).save(err => {
-				if (err) {
-					console.log('error', err)
-				}
-
-				console.log("added 'trainer' to roles collection")
-			})
 		}
 	})
-
+}
