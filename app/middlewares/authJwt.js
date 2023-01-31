@@ -14,7 +14,7 @@ const catchError = (err, res) => {
 
 //do przeanalizowania
 verifyToken = (req, res, next) => {
-	let token = req.headers["x-access-token"];
+	let token = req.headers['x-access-token']
 
 	if (!token) {
 		return res.status(403).send({ message: 'No token provided!' })
@@ -88,9 +88,40 @@ isModerator = (req, res, next) => {
 		)
 	})
 }
+isTrainer = (req, res, next) => {
+	User.findById(req.userId).exec((err, user) => {
+		if (err) {
+			res.status(500).send({ message: err })
+			return
+		}
+		Role.find(
+			{
+				_id: { $in: user.roles },
+			},
+			(err, roles) => {
+				if (err) {
+					res.status(500).send({ message: err })
+					return
+				}
+
+				for (let i = 0; i < roles.length; i++) {
+					if (roles[i].name === 'trainer') {
+						next()
+						return
+					}
+				}
+
+				res.status(403).send({ message: 'Require Trainer Role!' })
+				return
+			}
+		)
+	})
+}
+
 const authJwt = {
 	verifyToken,
 	isAdmin,
 	isModerator,
+	isTrainer,
 }
 module.exports = authJwt
