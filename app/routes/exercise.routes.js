@@ -4,7 +4,7 @@ const db = require('../model')
 
 const ROLES = db.ROLES
 const User = db.user
-const Exercises = db.exercise
+const Exercise = db.exercise
 
 //post
 //pobierz wszystkie - get
@@ -20,7 +20,7 @@ module.exports = function (app) {
 		const trainerExercises = [] //
 		if (db.exerciseCreator === req.body._id) {
 			trainerExercises.push(
-				Exercises.find({ exerciseCreator: req.body._id }).select({
+				Exercise.find({ exerciseCreator: req.body._id }).select({
 					exerciseName: 1,
 					exerciseDescription: 1,
 					exerciseAddingDate: 1,
@@ -34,7 +34,40 @@ module.exports = function (app) {
 			res.status(404).send({ message: 'Nie znaleziono ćwiczeń dodanych przez trenera' })
 		}
 	})
+
+	app.post('/exerciseAdd', (req, res) => {
+		const exercise = new Exercise({
+			exerciseName: req.body.exerciseName,
+			exerciseDescription: req.body.exerciseDescription,
+			exerciseCreator: req.body._id,
+		})
+		//przesledzic zmienna exercise -> cos tu nie styka
+		exercise.save((err, exercise) => {
+			if (err) {
+				res.status(500).send({ message: err })
+				return
+			} //rozdzielic, zwlaszcza creatora zeby zobaczyc czy dziala
+			//czy ify z nullami sa potrzebne skoro w modelu jest przy tych dokumentach required
+			if (req.body.exerciseName == null || req.body.exerciseDescription == null) {
+				console.log('Please fill all required fields!')
+			}
+			if (err) {
+				res.status(500).send({ message: err })
+				return
+			}
+			exercise.exerciseCreator = req.body._id //nie dziala, do poprawy
+			exercise.save(err => {
+				if (err) {
+					res.status(500).send({ message: err })
+					return
+				}
+
+				res.send({ message: `Exercise ${exercise} was added to your exercises library successfully!` })
+			})
+		})
+	})
 }
+
 // app.get('/trainerExercise', async (req, res) => {
 // 	try {
 // 		const trainerExercise = await User.find().populate({
@@ -64,4 +97,3 @@ module.exports = function (app) {
 // 			return
 // 		}
 // 	})
-// }))

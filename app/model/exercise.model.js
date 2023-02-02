@@ -14,15 +14,14 @@ const Exercise = mongoose.model(
 			minLength: [20, 'Please describe your exercise accurately.'],
 		},
 		exerciseCreator: {
-      type: mongoose.Schema.ObjectId,
-      ref: 'User',
-      required: true,
+			type: mongoose.Schema.ObjectId,
+			ref: 'User',
+			required: false,
 		},
 		exerciseAddingDate: {
 			type: Date,
 			default: Date.now,
 		},
-    
 	})
 )
 
