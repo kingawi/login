@@ -20,7 +20,14 @@ module.exports = function (app) {
 		const trainerExercises = [] //
 		if (db.exerciseCreator === req.body._id) {
 			trainerExercises.push(
-				Exercise.find({ exerciseCreator: req.body._id }).select({
+				Exercise.find({ exerciseCreator: req.body._id }, (err, Exercise) => {
+					if (err) {
+						res.status(500).send({ message: err })
+						return
+					} else {
+						console.log(Exercise)
+					}
+				}).select({
 					exerciseName: 1,
 					exerciseDescription: 1,
 					exerciseAddingDate: 1,
@@ -28,6 +35,8 @@ module.exports = function (app) {
 					_id: 1,
 				})
 			)
+
+			console.log(Exercise)
 			console.log(trainerExercises)
 			res.end()
 		} else {
