@@ -1,5 +1,4 @@
 const mongoose = require('mongoose')
-//w ten sposob tworzymy kolekcje w MongoDb i ustalamy jakie kolumny beda
 const Exercise = mongoose.model(
 	'Exercise',
 	new mongoose.Schema({

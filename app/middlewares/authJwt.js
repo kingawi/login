@@ -19,15 +19,16 @@ verifyToken = (req, res, next) => {
 	if (!token) {
 		return res.status(403).send({ message: 'No token provided!' })
 	}
-
-	jwt.verify(token, config.secret, (err, decoded) => {
-		if (err) {
-			return catchError(err, res)
-		}
-		req.userId = decoded.id
-		next()
-	})
-} //w przypadku wybrania sciezki /api/test/admin(kod w user.routes.js)
+	try {
+		jwt.verify(token, config.secret, decoded => {
+			req.userId = decoded.id
+			next()
+		})
+	} catch (err) {
+		return catchError(err, res)
+	}
+}
+//w przypadku wybrania sciezki /api/test/admin(kod w user.routes.js)
 isAdmin = (req, res, next) => {
 	User.findById(req.userId).exec((err, user) => {
 		if (err) {

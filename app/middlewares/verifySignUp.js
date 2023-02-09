@@ -3,42 +3,24 @@ const ROLES = db.ROLES
 const User = db.user
 
 //weryfikacja czy dany uzytkownik/email jest juz w bazie
-checkDuplicateUsernameOrEmail = (req, res, next) => {
+checkDuplicateUsernameOrEmail = async (req, res) => {
 	// Username
-	User.findOne({
-		username: req.body.username,
-	}).exec((err, user) => {
-		//exec() method executes a search for a match in a specified string and returns a result array, or null
-		if (err) {
-			//500 - internal server error
-			res.status(500).send({ message: err })
-			return
-		}
-
+	try {
+		const user = await User.findOne({ $or: [{ username: req.body.username }, { email: req.body.email }] })
 		if (user) {
-			res.status(400).send({ message: 'Przepraszamy, wybrana nazwa użytkownika jest już zajęta' })
-			return
+			res.status(400).send({
+				message:
+					user.username === req.body.username
+						? 'Przepraszamy, wybrana nazwa użytkownika jest w uzyciu'
+						: 'Przepraszamy, wybrany email jest już w użyciu',
+			})
 		}
-		// Email
-		User.findOne({
-			email: req.body.email,
-		}).exec((err, user) => {
-			if (err) {
-				res.status(500).send({ message: err })
-				return
-			}
-
-			if (user) {
-				res.status(400).send({ message: 'Przepraszamy, wybrany email jest już w użyciu' })
-				return
-			}
-
-			next()
-		})
-	})
+	} catch (err) {
+		res.status(500).send({ message: err })
+		return
+	}
 }
-//czym jest next
-//“next” is used to call other “middle-ware” functions with Express which can handle other things such as logging or error handling.
+
 checkRolesExisted = (req, res, next) => {
 	if (req.body.roles) {
 		for (let i = 0; i < req.body.roles.length; i++) {
@@ -50,7 +32,6 @@ checkRolesExisted = (req, res, next) => {
 			}
 		}
 	}
-
 	next()
 }
 const verifySignUp = {

@@ -13,15 +13,15 @@ exports.signup = (req, res) => {
 	})
 	user.save((err, user) => {
 		if (err) {
-			res.status(500).send({ message: err }) //jezeli bedzie zla rola przy rejestracji to pokaze status 500
+			res.status(500).send({ message: err }) 
 			return
 		}
 
 		if (req.body.roles) {
-			console.log(req.body.roles, 'w ifie')
+			//console.log(req.body.roles, 'w ifie')
 			Role.find(
 				{
-					name: { $in: req.body.roles }, //ten zapis iteruje po tablicy z rolami
+					name: { $in: req.body.roles }, 
 				},
 				(err, roles) => {
 					if (err) {
@@ -41,7 +41,8 @@ exports.signup = (req, res) => {
 				}
 			)
 		} else {
-			console.log(req.body.roles, 'w elsie')
+			//console.log(req.body.roles, 'w elsie')
+			//domyslnie przyporzadkowuje role 'user' do tworzonego uzytkownika
 			Role.findOne({ name: 'user' }, (err, role) => {
 				if (err) {
 					res.status(500).send({ message: err })

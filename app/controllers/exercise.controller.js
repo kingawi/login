@@ -3,38 +3,78 @@ const ROLES = db.ROLES
 const User = db.user
 const Exercise = db.exercise
 
-checkDuplicateUExerciseName = (req, res, next) => {
+//TO DO: edit function to check double exercise name in specific trainer collection
+
+exports.checkDuplicateExerciseOrTrainer = async (req, res) => {
 	// Username
-	Exercise.findOne({
+	try {
+		const exercise = await Exercise.findOne({
+			$and: [{ exerciseName: req.body.exerciseName }, { exerciseCreator: req.body._id }],
+		})
+		if (exercise) {
+			res.status(400).send({
+				message:
+					exercise.exerciseName === req.body.exerciseName
+						? 'Przepraszamy, wybrana nazwa ćwiczenia jest w użyciu'
+						: 'Przepraszamy, wybrana nazwa ćwiczenia jest w użyciu',
+			})
+		}
+	} catch (err) {
+		res.status(500).send({ message: err })
+		return
+	}
+}
+
+exports.getExercise = (req, res) => {
+	const trainerExercises = [] //
+	if (db.exerciseCreator === req.body._id) {
+		trainerExercises.push(
+			Exercise.find({ exerciseCreator: req.body._id }, (err, Exercise) => {
+				if (err) {
+					res.status(500).send({ message: err })
+					return
+				} else {
+					console.log(Exercise)
+				}
+			}).select({
+				exerciseName: 1,
+				exerciseDescription: 1,
+				exerciseAddingDate: 1,
+				exerciseCreator: 1,
+				_id: 1,
+			})
+		)
+
+		console.log(Exercise)
+		// console.log(trainerExercises)
+		res.end()
+	} else {
+		res.status(404).send({ message: 'Nie znaleziono ćwiczeń dodanych przez trenera' })
+	}
+}
+
+exports.exerciseAdd = (req, res) => {
+	const exercise = new Exercise({
 		exerciseName: req.body.exerciseName,
-	}).exec((err, Exercise) => {
-		//exec() method executes a search for a match in a specified string and returns a result array, or null
+		exerciseDescription: req.body.exerciseDescription,
+		// exerciseCreator: req.body._id,
+	})
+	//przesledzic zmienna exercise
+	exercise.save((err, exercise) => {
 		if (err) {
-			//500 - internal server error
+			res.status(500).send({ message: err })
+			return
+		} //rozdzielic, zwlaszcza creatora zeby zobaczyc czy dziala
+		//czy ify z nullami sa potrzebne skoro w modelu jest przy tych dokumentach required
+		if (req.body.exerciseName == null || req.body.exerciseDescription == null) {
+			console.log('Please fill all required fields!')
+		}
+		if (err) {
 			res.status(500).send({ message: err })
 			return
 		}
-
-		if (Exercise) {
-			res.status(400).send({ message: 'Przepraszamy, ćwiczenie o podanej nazwie już istnieje' })
-			return
-		}
-		// jak zrobic w tym miejscu, zeby szukalo po bazie cwiczen trenera ktory dodaje cwiczenie?
-		User.findOne({
-			email: req.body.email,
-		}).exec((err, user) => {
-			if (err) {
-				res.status(500).send({ message: err })
-				return
-			}
-
-			if (user) {
-				res.status(400).send({ message: 'Przepraszamy, wybrany email jest już w użyciu' })
-				return
-			}
-
-			next()
-		})
+		exercise.exerciseCreator = req.userId
+		res.send({ message: `Exercise ${exercise} was added to your exercises library successfully!` })
 	})
 }
 

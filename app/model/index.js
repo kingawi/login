@@ -10,7 +10,7 @@ db.role = require('./role.model')
 db.exercise = require('./exercise.model')
 db.refreshToken = require('./refreshToken.model')
 
-//tworzymy tablice z okreslonymi rolami
+
 db.ROLES = ['user', 'admin', 'moderator', 'trainer']
 
 module.exports = db
