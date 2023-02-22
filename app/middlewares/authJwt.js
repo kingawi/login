@@ -9,26 +9,26 @@ const catchError = (err, res) => {
 	if (err instanceof TokenExpiredError) {
 		return res.status(401).send({ message: 'Unauthorized! Access Token was expired!' })
 	}
-	return res.sendStatus(401).send({ message: 'Unauthorized!' })
+	return res.status(401).send({ message: 'Unauthorized!' })
 }
 
 //do przeanalizowania
-verifyToken = (req, res, next) => {
+verifyToken = async (req, res, next) => {
 	let token = req.headers['x-access-token']
 
 	if (!token) {
 		return res.status(403).send({ message: 'No token provided!' })
 	}
 	try {
-		jwt.verify(token, config.secret, decoded => {
-			req.userId = decoded.id
-			next()
-		})
+		const decoded = await jwt.verify(token, config.secret)
+
+		req.userId = decoded.id
+		next()
 	} catch (err) {
 		return catchError(err, res)
 	}
 }
-//w przypadku wybrania sciezki /api/test/admin(kod w user.routes.js)
+
 isAdmin = (req, res, next) => {
 	User.findById(req.userId).exec((err, user) => {
 		if (err) {
@@ -89,34 +89,22 @@ isModerator = (req, res, next) => {
 		)
 	})
 }
-isTrainer = (req, res, next) => {
-	User.findById(req.userId).exec((err, user) => {
-		if (err) {
-			res.status(500).send({ message: err })
+isTrainer = async (req, res, next) => {
+	try {
+		const role = await db.role.findOne({
+			name: req.body.roles,
+		})
+		if (role.name == 'trainer') {
+			next()
+			return
+		} else {
+			res.status(403).send({ message: 'Require Trainer Role!' })
 			return
 		}
-		Role.find(
-			{
-				_id: { $in: user.roles },
-			},
-			(err, roles) => {
-				if (err) {
-					res.status(500).send({ message: err })
-					return
-				}
-
-				for (let i = 0; i < roles.length; i++) {
-					if (roles[i].name === 'trainer') {
-						next()
-						return
-					}
-				}
-
-				res.status(403).send({ message: 'Require Trainer Role!' })
-				return
-			}
-		)
-	})
+	} catch (err) {
+		res.status(500).send({ message: err })
+		return
+	}
 }
 
 const authJwt = {

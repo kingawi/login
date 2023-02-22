@@ -53,3 +53,17 @@ exports.signup = async (req, res) => {
 		return
 	}
 }
+
+
+getExercise = async (req, res) => {
+		const trainerExercises = await Exercise.find({ exerciseCreator: req.body._id }
+			).select({
+				exerciseName: 1,
+				exerciseDescription: 1,
+				exerciseAddingDate: 1,
+				exerciseCreator: 1,
+				_id: 1,
+			})
+			res.send(trainerExercises)
+	}
+

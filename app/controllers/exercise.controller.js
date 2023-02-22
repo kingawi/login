@@ -1,87 +1,85 @@
 const db = require('../model')
-const ROLES = db.ROLES
-const User = db.user
 const Exercise = db.exercise
 
-//TO DO: edit function to check double exercise name in specific trainer collection
-
-exports.checkDuplicateExerciseOrTrainer = async (req, res) => {
-	// Username
+exports.checkDuplicateExerciseOrTrainer = async (req, res, next) => {
 	try {
-		const exercise = await Exercise.findOne({
-			$and: [{ exerciseName: req.body.exerciseName }, { exerciseCreator: req.body._id }],
-		})
+		const exercise = await Exercise.findOne({ exerciseName: req.body.exerciseName, exerciseCreator: req.userId })
+		//if exercise exist return error
 		if (exercise) {
-			res.status(400).send({
-				message:
-					exercise.exerciseName === req.body.exerciseName
-						? 'Przepraszamy, wybrana nazwa ćwiczenia jest w użyciu'
-						: 'Przepraszamy, wybrana nazwa ćwiczenia jest w użyciu',
+			res.status(404).send({
+				message: `We're sorry, this exercise name is already in use.`,
 			})
+		} else {
+			next()
 		}
 	} catch (err) {
 		res.status(500).send({ message: err })
 		return
 	}
 }
-
-exports.getExercise = (req, res) => {
-	const trainerExercises = [] //
-	if (db.exerciseCreator === req.body._id) {
-		trainerExercises.push(
-			Exercise.find({ exerciseCreator: req.body._id }, (err, Exercise) => {
-				if (err) {
-					res.status(500).send({ message: err })
-					return
-				} else {
-					console.log(Exercise)
-				}
-			}).select({
-				exerciseName: 1,
-				exerciseDescription: 1,
-				exerciseAddingDate: 1,
-				exerciseCreator: 1,
-				_id: 1,
-			})
-		)
-
-		console.log(Exercise)
-		// console.log(trainerExercises)
-		res.end()
-	} else {
-		res.status(404).send({ message: 'Nie znaleziono ćwiczeń dodanych przez trenera' })
+exports.getExercise = async (req, res) => {
+	try {
+		const trainerExercises = await Exercise.find({ exerciseCreator: req.userId }).select({
+			exerciseName: 1,
+			exerciseDescription: 1,
+			exerciseAddingDate: 1,
+			exerciseCreator: 1,
+			_id: 1,
+		})
+		res.send(trainerExercises)
+	} catch (err) {
+		res.status(404).json({ message: `Sorry, we didn't find any exercise in your library. ` })
 	}
 }
+exports.exerciseAdd = async (req, res) => {
+	try {
+		console.log(req.userId, 'sprawdzam usera')
+		const exercise = new Exercise({
+			exerciseName: req.body.exerciseName,
+			exerciseDescription: req.body.exerciseDescription,
+			exerciseCreator: req.body.userId,
+		})
 
-exports.exerciseAdd = (req, res) => {
-	const exercise = new Exercise({
-		exerciseName: req.body.exerciseName,
-		exerciseDescription: req.body.exerciseDescription,
-		// exerciseCreator: req.body._id,
-	})
-	//przesledzic zmienna exercise
-	exercise.save((err, exercise) => {
-		if (err) {
-			res.status(500).send({ message: err })
-			return
-		} //rozdzielic, zwlaszcza creatora zeby zobaczyc czy dziala
-		//czy ify z nullami sa potrzebne skoro w modelu jest przy tych dokumentach required
 		if (req.body.exerciseName == null || req.body.exerciseDescription == null) {
 			console.log('Please fill all required fields!')
 		}
-		if (err) {
-			res.status(500).send({ message: err })
-			return
-		}
 		exercise.exerciseCreator = req.userId
+		await exercise.save()
 		res.send({ message: `Exercise ${exercise} was added to your exercises library successfully!` })
-	})
+	} catch (err) {
+		res.status(500).send({ message: err })
+		return
+	}
 }
-
-const checkTrainerRole = (req, res) => {
-	if (req.body.role != 'trainer') {
-		return res.status(403).json({ message: 'Sorry, you do not have permission for below action' })
-	} else {
-		next()
+exports.deleteExercise = async (req, res) => {
+	try {
+		const exercise = await Exercise.findOneAndDelete(
+			{ _id: req.params.id, exerciseCreator: req.userId },
+			{
+				$deleteOne: {
+					exerciseName: req.body.exerciseName,
+					exerciseDescription: req.body.exerciseDescription,
+				},
+			}
+		)
+		res.send({ message: `Exercise ${exercise.exerciseName} has been deleted.` })
+	} catch (err) {
+		res.status(404).json({ message: `Sorry, we didn't find exercise ${req.params} in your library. ` })
+	}
+}
+exports.editExercise = async (req, res) => {
+	try {
+		const exercise = await Exercise.findOneAndUpdate(
+			{ _id: req.params.id, exerciseCreator: req.userId },
+			{
+				$set: {
+					exerciseName: req.body.exerciseName,
+					exerciseDescription: req.body.exerciseDescription,
+				},
+			}
+		)
+		res.send({ message: `Exercise ${exercise.exerciseName} has been updated.` })
+	} catch (err) {
+		res.status(500).json({ message: err })
 	}
 }
