@@ -11,16 +11,17 @@ exports.signup = (req, res) => {
 		email: req.body.email,
 		password: bcrypt.hashSync(req.body.password, 8),
 	})
-
 	user.save((err, user) => {
 		if (err) {
-			res.status(500).send({ message: err }) //jezeli bedzie zla rola przy rejestracji to pokaze status 500
+			res.status(500).send({ message: err }) 
 			return
 		}
+
 		if (req.body.roles) {
+			//console.log(req.body.roles, 'w ifie')
 			Role.find(
 				{
-					name: { $in: req.body.roles }, //ten zapis iteruje po tablicy z rolami
+					name: { $in: req.body.roles }, 
 				},
 				(err, roles) => {
 					if (err) {
@@ -40,6 +41,8 @@ exports.signup = (req, res) => {
 				}
 			)
 		} else {
+			//console.log(req.body.roles, 'w elsie')
+			//domyslnie przyporzadkowuje role 'user' do tworzonego uzytkownika
 			Role.findOne({ name: 'user' }, (err, role) => {
 				if (err) {
 					res.status(500).send({ message: err })
@@ -92,7 +95,6 @@ exports.signin = (req, res) => {
 			for (let i = 0; i < user.roles.length; i++) {
 				authorities.push('ROLE_' + user.roles[i].name.toUpperCase())
 			}
-			req.session.token = token
 
 			res.status(200).send({
 				id: user._id,

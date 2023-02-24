@@ -1,35 +1,20 @@
-const express = require("express");
-const router = express.Router();
-const homeController = require("../controllers/home.controller");
-const uploadController = require("../controllers/exercise.controller");
-
-// let exerciseUpload = app => {
-//   router.get("/", homeController.getHome);
-
-//   router.post("/upload", uploadController.uploadFiles);
-//   router.get("/files", uploadController.getListFiles);
-//   router.get("/files/:name", uploadController.download);
-
-//   return app.use("/", router);
-// };
-// 
-// module.exports = exerciseUpload;
-
+const auth = require('../middlewares/authJwt')
+const controllers = require('../controllers/exercise.controller')
 
 module.exports = function (app) {
-    app.use(function (req, res, next) {
+	app.use(function (req, res, next) {
 		res.header('Access-Control-Allow-Headers', 'Origin, Content-Type, Accept')
 		next()
 	})
-    app.get("/", homeController.getHome);
+	app.get('/trainerexercises', auth.verifyToken, controllers.getExercise)
 
-    app.post("/upload", uploadController.uploadFiles);
-    app.get("/files", uploadController.getListFiles);
-    app.get("/files/:name", uploadController.download);
-  
+	app.post('/exerciseAdd', auth.verifyToken, controllers.checkDuplicateExerciseOrTrainer, controllers.exerciseAdd)
+	app.put(
+		'/trainerexercises/:id/:exerciseName?',
+		[auth.verifyToken, auth.isTrainer],
+		controllers.checkDuplicateExerciseOrTrainer,
+		controllers.editExercise
+	)
+	app.delete('/trainerexercises/:id/:exerciseName?', [auth.verifyToken, auth.isTrainer], controllers.deleteExercise)
+	app.get('/checkDuplicates', controllers.checkDuplicateExerciseOrTrainer)
 }
-
-//post
-//pobierz wszystkie - get
-//update rekordu
-//delete 

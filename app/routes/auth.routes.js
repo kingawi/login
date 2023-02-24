@@ -8,15 +8,13 @@ module.exports = function (app) {
 		next()
 	})
 
-	//jezeli mamy sciezke url signup to zweryfikuj czy nazwa i email istnieja juz i sprawdz czy przypisano odpowiednia role
+
 	app.post(
 		'/api/auth/signup',
 		[verifySignUp.checkDuplicateUsernameOrEmail, verifySignUp.checkRolesExisted],
-		controller.signup //zapisuje dane uzytkownika w bazie
+		controller.signup 
 	)
-
 	app.post('/api/auth/signin', controller.signin)
 	app.post('/api/auth/refreshtoken', controller.refreshToken)
-
 	app.post('/api/auth/signout', controller.signout)
 }

@@ -20,14 +20,16 @@ const User = mongoose.model(
 		},
 		roles: [
 			{
-				type: mongoose.Schema.Types.ObjectId, // ???
+				type: mongoose.Schema.Types.ObjectId,
 				ref: 'Role',
 			},
 		],
-		token: {
-			type: String,
-		},
+		exercises: [
+			{
+				type: mongoose.Schema.Types.ObjectId,
+				ref: 'Exercise',
+			},
+		],
 	})
 )
-
 module.exports = User

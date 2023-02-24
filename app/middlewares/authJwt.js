@@ -9,25 +9,26 @@ const catchError = (err, res) => {
 	if (err instanceof TokenExpiredError) {
 		return res.status(401).send({ message: 'Unauthorized! Access Token was expired!' })
 	}
-	return res.sendStatus(401).send({ message: 'Unauthorized!' })
+	return res.status(401).send({ message: 'Unauthorized!' })
 }
 
 //do przeanalizowania
-verifyToken = (req, res, next) => {
-	let token = req.headers["x-access-token"];
+verifyToken = async (req, res, next) => {
+	let token = req.headers['x-access-token']
 
 	if (!token) {
 		return res.status(403).send({ message: 'No token provided!' })
 	}
+	try {
+		const decoded = await jwt.verify(token, config.secret)
 
-	jwt.verify(token, config.secret, (err, decoded) => {
-		if (err) {
-			return catchError(err, res)
-		}
 		req.userId = decoded.id
 		next()
-	})
-} //w przypadku wybrania sciezki /api/test/admin(kod w user.routes.js)
+	} catch (err) {
+		return catchError(err, res)
+	}
+}
+
 isAdmin = (req, res, next) => {
 	User.findById(req.userId).exec((err, user) => {
 		if (err) {
@@ -88,9 +89,28 @@ isModerator = (req, res, next) => {
 		)
 	})
 }
+isTrainer = async (req, res, next) => {
+	try {
+		const role = await db.role.findOne({
+			name: req.body.roles,
+		})
+		if (role.name == 'trainer') {
+			next()
+			return
+		} else {
+			res.status(403).send({ message: 'Require Trainer Role!' })
+			return
+		}
+	} catch (err) {
+		res.status(500).send({ message: err })
+		return
+	}
+}
+
 const authJwt = {
 	verifyToken,
 	isAdmin,
 	isModerator,
+	isTrainer,
 }
 module.exports = authJwt

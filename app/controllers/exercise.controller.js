@@ -1,107 +1,85 @@
-const upload = require('../middlewares/exerciseAdd')
-const dbConfig = require('../config/db.config')
+const db = require('../model')
+const Exercise = db.exercise
 
-const MongoClient = require('mongodb').MongoClient
-const GridFSBucket = require('mongodb').GridFSBucket
-
-const url = dbConfig.url
-
-const baseUrl = 'http://localhost:8080/files/'
-
-const mongoClient = new MongoClient(url)
-
-const uploadFiles = async (req, res) => {
+exports.checkDuplicateExerciseOrTrainer = async (req, res, next) => {
 	try {
-		await upload(req, res)
-		console.log(req.file)
-
-		if (req.file == undefined) {
-			return res.send({
-				message: 'You must select a file.',
+		const exercise = await Exercise.findOne({ exerciseName: req.body.exerciseName, exerciseCreator: req.userId })
+		//if exercise exist return error
+		if (exercise) {
+			res.status(404).send({
+				message: `We're sorry, this exercise name is already in use.`,
 			})
+		} else {
+			next()
 		}
-		return res.send({
-			message: 'File has been uploaded.',
-		})
-	} catch (error) {
-		console.log(error)
-
-		return res.send({
-			message: 'Error when trying upload image: ${error}',
-		})
+	} catch (err) {
+		res.status(500).send({ message: err })
+		return
 	}
 }
-const getListFiles = async (req, res) => {
+exports.getExercise = async (req, res) => {
 	try {
-		await connectDb()
+		const trainerExercises = await Exercise.find({ exerciseCreator: req.userId }).select({
+			exerciseName: 1,
+			exerciseDescription: 1,
+			exerciseAddingDate: 1,
+			exerciseCreator: 1,
+			_id: 1,
+		})
+		res.send(trainerExercises)
+	} catch (err) {
+		res.status(404).json({ message: `Sorry, we didn't find any exercise in your library. ` })
+	}
+}
+exports.exerciseAdd = async (req, res) => {
+	try {
+		console.log(req.userId, 'sprawdzam usera')
+		const exercise = new Exercise({
+			exerciseName: req.body.exerciseName,
+			exerciseDescription: req.body.exerciseDescription,
+			exerciseCreator: req.body.userId,
+		})
 
-		// const database = mongoClient.db(dbConfig.database)
-		// const images = database.collection(dbConfig.exercises + '.files')
-
-		const cursor = images.find({})
-
-		if ((await cursor.estimatedDocumentCount()) === 0) {
-			return res.status(500).send({
-				message: 'No files found!',
-			})
+		if (req.body.exerciseName == null || req.body.exerciseDescription == null) {
+			console.log('Please fill all required fields!')
 		}
-
-		let fileInfos = []
-		await cursor.forEach(doc => {
-			fileInfos.push({
-				name: doc.exerciseName,
-				url: baseUrl + doc.exerciseName,
-			})
-		})
-
-		return res.status(200).send(fileInfos)
-	} catch (error) {
-		return res.status(500).send({
-			message: error.message,
-		})
+		exercise.exerciseCreator = req.userId
+		await exercise.save()
+		res.send({ message: `Exercise ${exercise} was added to your exercises library successfully!` })
+	} catch (err) {
+		res.status(500).send({ message: err })
+		return
 	}
 }
-//jezeli tu jest polaczenie z baza danych - jak to przeksztalcic zeby laczylo sie z polaczeniem w pliku server.js
-const download = async (req, res) => {
+exports.deleteExercise = async (req, res) => {
 	try {
-		await connectDb() //czy tutaj nie zrobi sie podwojne polaczenie?
-
-		const database = mongoClient.db(dbConfig.database)
-		const bucket = new GridFSBucket(database, {
-		bucketName: dbConfig.exercises,
-		})
-
-		let downloadStream = bucket.openDownloadStreamByName(req.params.name)
-
-		downloadStream.on('data', function (data) {
-			return res.status(200).write(data)
-		})
-
-		downloadStream.on('error', function (err) {
-			return res.status(404).send({ message: 'Cannot download the Image!' })
-		})
-
-		downloadStream.on('end', () => {
-			return res.end()
-		})
-	} catch (error) {
-		return res.status(500).send({
-			message: error.message,
-		})
+		const exercise = await Exercise.findOneAndDelete(
+			{ _id: req.params.id, exerciseCreator: req.userId },
+			{
+				$deleteOne: {
+					exerciseName: req.body.exerciseName,
+					exerciseDescription: req.body.exerciseDescription,
+				},
+			}
+		)
+		res.send({ message: `Exercise ${exercise.exerciseName} has been deleted.` })
+	} catch (err) {
+		res.status(404).json({ message: `Sorry, we didn't find exercise ${req.params} in your library. ` })
 	}
 }
-module.exports = {
-	uploadFiles,
-	getListFiles,
-	download,
+exports.editExercise = async (req, res) => {
+	try {
+		const exercise = await Exercise.findOneAndUpdate(
+			{ _id: req.params.id, exerciseCreator: req.userId },
+			{
+				$set: {
+					exerciseName: req.body.exerciseName,
+					exerciseDescription: req.body.exerciseDescription,
+				},
+			}
+		)
+		res.send({ message: `Exercise ${exercise.exerciseName} has been updated.` })
+	} catch (err) {
+		res.status(500).json({ message: err })
+	}
 }
-
-// – For File Upload method, we will export upload() function that:
-
-// use middleware function for file upload
-// catch Multer error (in middleware function)
-// return response with message
-// – For Image File Information and Download:
-
-// getListFiles(): read all files in MongoDB collection photos.files, return list of files’ information (name, url)
-// download(): receives file name as input parameter, open download Stream from mongodb built-in GridFSBucket, then response.write(chunk) API to transfer the file to the client.
