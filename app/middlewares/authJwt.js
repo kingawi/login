@@ -12,14 +12,14 @@ const catchError = (err, res) => {
 	return res.status(401).send({ message: 'Unauthorized!' })
 }
 
-//do przeanalizowania
 verifyToken = async (req, res, next) => {
-	let token = req.headers['x-access-token']
-
-	if (!token) {
-		return res.status(403).send({ message: 'No token provided!' })
-	}
 	try {
+		let token = req.headers['x-access-token']
+
+		if (!token) {
+			return res.status(403).send({ message: 'No token provided!' })
+		}
+
 		const decoded = await jwt.verify(token, config.secret)
 
 		req.userId = decoded.id
@@ -29,77 +29,53 @@ verifyToken = async (req, res, next) => {
 	}
 }
 
-isAdmin = (req, res, next) => {
-	User.findById(req.userId).exec((err, user) => {
-		if (err) {
-			res.status(500).send({ message: err })
-			return
+isAdmin = async (req, res, next) => {
+	try {
+		const user = await User.findById(req.userId)
+		console.log(user)
+		const role = await Role.findOne({
+			_id: { $in: user.roles },
+		})
+		if (role.name == 'admin') {
+			next()
+		} else {
+			res.status(403).send({ message: 'Require Admin Role!' })
 		}
-
-		Role.find(
-			{
-				_id: { $in: user.roles },
-			},
-			(err, roles) => {
-				if (err) {
-					res.status(500).send({ message: err })
-					return
-				}
-
-				for (let i = 0; i < roles.length; i++) {
-					if (roles[i].name === 'admin') {
-						next()
-						return
-					}
-				}
-
-				res.status(403).send({ message: 'Require Admin Role!' })
-				return
-			}
-		)
-	})
+	} catch (err) {
+		res.status(500).send({ message: err })
+		return
+	}
 }
 
-isModerator = (req, res, next) => {
-	User.findById(req.userId).exec((err, user) => {
-		if (err) {
-			res.status(500).send({ message: err })
-			return
+isModerator = async (req, res, next) => {
+	try {
+		const user = await User.findById(req.userId)
+		console.log(user)
+		const role = await Role.findOne({
+			_id: { $in: user.roles },
+		})
+		if (role.name == 'moderator') {
+			next()
+		} else {
+			res.status(403).send({ message: 'Require Moderator Role!' })
 		}
-		Role.find(
-			{
-				_id: { $in: user.roles },
-			},
-			(err, roles) => {
-				if (err) {
-					res.status(500).send({ message: err })
-					return
-				}
-
-				for (let i = 0; i < roles.length; i++) {
-					if (roles[i].name === 'moderator') {
-						next()
-						return
-					}
-				}
-
-				res.status(403).send({ message: 'Require Moderator Role!' })
-				return
-			}
-		)
-	})
+	} catch (err) {
+		res.status(500).send({ message: err })
+		return
+	}
 }
+
 isTrainer = async (req, res, next) => {
 	try {
-		const role = await db.role.findOne({
-			name: req.body.roles,
+		const user = await User.findById(req.userId)
+		console.log(user)
+		const role = await Role.findOne({
+			_id: { $in: user.roles },
 		})
 		if (role.name == 'trainer') {
 			next()
-			return
 		} else {
 			res.status(403).send({ message: 'Require Trainer Role!' })
-			return
 		}
 	} catch (err) {
 		res.status(500).send({ message: err })

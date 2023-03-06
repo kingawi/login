@@ -16,3 +16,6 @@ exports.moderatorBoard = (req, res) => {
 exports.trainerBoard = (req, res) => {
 	res.status(200).send('Trainer Content.')
 }
+
+
+

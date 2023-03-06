@@ -33,7 +33,6 @@ exports.getExercise = async (req, res) => {
 }
 exports.exerciseAdd = async (req, res) => {
 	try {
-		console.log(req.userId, 'sprawdzam usera')
 		const exercise = new Exercise({
 			exerciseName: req.body.exerciseName,
 			exerciseDescription: req.body.exerciseDescription,
@@ -54,17 +53,17 @@ exports.exerciseAdd = async (req, res) => {
 exports.deleteExercise = async (req, res) => {
 	try {
 		const exercise = await Exercise.findOneAndDelete(
-			{ _id: req.params.id, exerciseCreator: req.userId },
+			{ _id: req.params.id, exerciseCreator: req.userId }, //only creator can delete his own exercise
 			{
+				//poprawic - zedytowac ID i dodac req.params.id
 				$deleteOne: {
-					exerciseName: req.body.exerciseName,
-					exerciseDescription: req.body.exerciseDescription,
+					_id: req.params.id,
 				},
 			}
 		)
-		res.send({ message: `Exercise ${exercise.exerciseName} has been deleted.` })
+		res.send({ message: `Exercise ${req.body.exerciseName} has been deleted.` })
 	} catch (err) {
-		res.status(404).json({ message: `Sorry, we didn't find exercise ${req.params} in your library. ` })
+		res.status(404).json({ message: `Sorry, we didn't find exercise ${req.body.exerciseName} in your library. ` })
 	}
 }
 exports.editExercise = async (req, res) => {
@@ -78,7 +77,7 @@ exports.editExercise = async (req, res) => {
 				},
 			}
 		)
-		res.send({ message: `Exercise ${exercise.exerciseName} has been updated.` })
+		res.status(200).send({ message: `Exercise ${req.body.exerciseName} has been updated.` })
 	} catch (err) {
 		res.status(500).json({ message: err })
 	}
