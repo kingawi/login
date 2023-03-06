@@ -7,7 +7,6 @@ module.exports = function (app) {
 		next()
 	})
 	app.get('/trainerexercises', auth.verifyToken, controllers.getExercise)
-
 	app.post('/exerciseAdd', auth.verifyToken, controllers.checkDuplicateExerciseOrTrainer, controllers.exerciseAdd)
 	app.put(
 		'/trainerexercises/:id/:exerciseName?',
